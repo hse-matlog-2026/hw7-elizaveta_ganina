@@ -113,6 +113,11 @@ class Term:
         Returns:
             The standard string representation of the current term.
         """
+        if is_constant(self.root) or is_variable(self.root):
+            return self.root
+        else:
+            args_str = ','.join(repr(arg) for arg in self.arguments)
+            return f"{self.root}({args_str})"
         # Task 7.1
 
     def __eq__(self, other: object) -> bool:
@@ -156,6 +161,33 @@ class Term:
             or a variable name (e.g., ``'x12'``), then the parsed prefix will be
             that entire name (and not just a part of it, such as ``'x1'``).
         """
+        if string == '':
+            return None, string
+        
+        if is_constant(string[0]) or is_variable(string[0]):
+            i = 0
+            while i < len(string) and (string[i].isalnum() or string[i] == '_'):
+                i += 1
+            name = string[:i]
+            return Term(name), string[i:]
+        
+        if is_function(string[0]):
+            i = 0
+            while i < len(string) and string[i] != '(':
+                i += 1
+            func_name = string[:i]
+            rest = string[i+1:]
+            
+            arguments = []
+            while rest and rest[0] != ')':
+                arg, rest = Term._parse_prefix(rest)
+                arguments.append(arg)
+                if rest and rest[0] == ',':
+                    rest = rest[1:]
+            
+            return Term(func_name, arguments), rest[1:]
+        
+        return None, string
         # Task 7.3a
 
     @staticmethod
@@ -176,6 +208,8 @@ class Term:
         Returns:
             A set of all constant names used in the current term.
         """
+        term, remainder = Term._parse_prefix(string)
+        return term
         # Task 7.5a
 
     def variables(self) -> Set[str]:
@@ -380,6 +414,17 @@ class Formula:
         Returns:
             The standard string representation of the current formula.
         """
+        if is_equality(self.root):
+            return f"{repr(self.arguments[0])}={repr(self.arguments[1])}"
+        elif is_relation(self.root):
+            args_str = ','.join(repr(arg) for arg in self.arguments)
+            return f"{self.root}({args_str})"
+        elif is_unary(self.root):
+            return f"{self.root}{repr(self.first)}"
+        elif is_binary(self.root):
+            return f"({repr(self.first)}{self.root}{repr(self.second)})"
+        else:
+            return f"{self.root}{self.variable}[{repr(self.statement)}]"
         # Task 7.2
 
     def __eq__(self, other: object) -> bool:
